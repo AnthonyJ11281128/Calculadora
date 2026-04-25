@@ -1,0 +1,165 @@
+import pygame
+import random
+
+pygame.init()
+pygame.mixer.init()
+
+ANCHO, ALTO = 600, 500
+VENTANA = pygame.display.set_mode((ANCHO, ALTO))
+pygame.display.set_caption("Space Shooter")
+
+
+NEGRO = (0, 0, 0)
+BLANCO = (255, 255, 255)
+
+fuente = pygame.font.SysFont("Arial", 20)
+fuente_grande = pygame.font.SysFont("Arial", 40)
+
+nave_img = pygame.transform.scale(pygame.image.load("nave.png"), (50, 40))
+enemigo_img = pygame.transform.scale(pygame.image.load("enemigo.png"), (40, 30))
+bala_img = pygame.transform.scale(pygame.image.load("bala.png"), (10, 20))
+explosion_img = pygame.transform.scale(pygame.image.load("explosion.png"), (40, 40))
+
+def dibujar_texto(texto, fuente, color, x, y):
+    img = fuente.render(texto, True, color)
+    VENTANA.blit(img, (x, y))
+
+def crear_enemigos(n):
+    lista = []
+    for _ in range(n):
+        x = random.randint(20, ANCHO - 60)
+        y = random.randint(20, 150)
+        lista.append(enemigo_img.get_rect(topleft=(x, y)))
+    return lista
+
+def menu():
+    while True:
+        VENTANA.fill(NEGRO)
+        dibujar_texto("SPACE SHOOTER", fuente_grande, BLANCO, 140, 180)
+        dibujar_texto("Presiona ENTER para jugar", fuente, BLANCO, 170, 250)
+        pygame.display.flip()
+
+        for e in pygame.event.get():
+            if e.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            if e.type == pygame.KEYDOWN:
+                if e.key == pygame.K_RETURN:
+                    return
+
+def juego():
+    nave = nave_img.get_rect(center=(ANCHO//2, ALTO - 50))
+    balas = []
+    enemigos = crear_enemigos(5)
+    balas_enemigos = []
+
+    vidas = 3
+    puntaje = 0
+    reloj = pygame.time.Clock()
+
+    ejecutando = True
+
+    while ejecutando:
+        reloj.tick(60)
+
+      
+        for e in pygame.event.get():
+            if e.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+
+            if e.type == pygame.KEYDOWN:
+                if e.key == pygame.K_SPACE:
+                    bala = bala_img.get_rect(midbottom=nave.midtop)
+                    balas.append(bala)
+                   
+
+        
+        teclas = pygame.key.get_pressed()
+        if teclas[pygame.K_LEFT] and nave.left > 0:
+            nave.x -= 5
+        if teclas[pygame.K_RIGHT] and nave.right < ANCHO:
+            nave.x += 5
+
+       
+        for bala in balas[:]:
+            bala.y -= 7
+            if bala.bottom < 0:
+                balas.remove(bala)
+
+        for enemigo in enemigos:
+            enemigo.y += 1
+            if random.randint(0, 100) < 2:
+                bala_e = bala_img.get_rect(midtop=enemigo.midbottom)
+                balas_enemigos.append(bala_e)
+
+        for bala in balas_enemigos[:]:
+            bala.y += 5
+            if bala.top > ALTO:
+                balas_enemigos.remove(bala)
+
+       
+        for bala in balas[:]:
+            for enemigo in enemigos[:]:
+                if bala.colliderect(enemigo):
+                    balas.remove(bala)
+                    enemigos.remove(enemigo)
+                    puntaje += 10
+                    enemigos.append(crear_enemigos(1)[0])
+                    break
+
+       
+        for enemigo in enemigos:
+            if enemigo.colliderect(nave):
+                vidas -= 1
+                enemigos.remove(enemigo)
+
+        for bala in balas_enemigos:
+            if bala.colliderect(nave):
+                vidas -= 1
+                balas_enemigos.remove(bala)
+
+        
+        if vidas <= 0:
+            return puntaje
+
+        
+        VENTANA.fill(NEGRO)
+
+        VENTANA.blit(nave_img, nave)
+
+        for bala in balas:
+            VENTANA.blit(bala_img, bala)
+
+        for enemigo in enemigos:
+            VENTANA.blit(enemigo_img, enemigo)
+
+        for bala in balas_enemigos:
+            VENTANA.blit(bala_img, bala)
+
+        
+        dibujar_texto(f"Puntaje: {puntaje}", fuente, BLANCO, 10, 10)
+        dibujar_texto(f"Vidas: {vidas}", fuente, BLANCO, 500, 10)
+
+        pygame.display.flip()
+
+def game_over(puntaje):
+    while True:
+        VENTANA.fill(NEGRO)
+        dibujar_texto("GAME OVER", fuente_grande, BLANCO, 170, 180)
+        dibujar_texto(f"Puntaje: {puntaje}", fuente, BLANCO, 240, 250)
+        dibujar_texto("Presiona R para reiniciar", fuente, BLANCO, 190, 300)
+        pygame.display.flip()
+
+        for e in pygame.event.get():
+            if e.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            if e.type == pygame.KEYDOWN:
+                if e.key == pygame.K_r:
+                    return
+
+while True:
+    menu()
+    score = juego()
+    game_over(score)
